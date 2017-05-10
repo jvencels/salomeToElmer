@@ -184,7 +184,7 @@ def exportToElmer(mesh,dirname='salomeToElmer'):
     fileBoundary.close()
 
     print "Done exporting!\n"
-    print("Total time: %0.fs\n" %(time.time()-tstart),1)
+    print "Total time: %0.f s\n" %(time.time()-tstart)
 
 
 def findSelectedMeshes():
