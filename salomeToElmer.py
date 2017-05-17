@@ -76,9 +76,19 @@ def exportToElmer(mesh,dirname='salomeToElmer'):
         print "ERROR: Cannot open files for writting"
         return
 
+    meshIs3D = False
+    if mesh.NbVolumes()>0:
+        meshIs3D = True
+
     # mesh.header
-    fileHeader.write("%d %d %d\n" \
-        %(mesh.NbNodes(),mesh.NbVolumes(),mesh.NbEdges()+mesh.NbFaces()))
+    if meshIs3D:
+        print "Exporting 3D mesh..\n"
+        fileHeader.write("%d %d %d\n" \
+            %(mesh.NbNodes(),mesh.NbVolumes(),mesh.NbEdges()+mesh.NbFaces()))
+    else:
+        print "Exporting 2D mesh..\n"
+        fileHeader.write("%d %d %d\n" \
+            %(mesh.NbNodes(),mesh.NbFaces(),mesh.NbEdges()))
 
     elems = {str(k): v for k, v in mesh.GetMeshInfo().items() if v}
     fileHeader.write("%d\n" %(len(elems.values())-1))
@@ -110,10 +120,13 @@ def exportToElmer(mesh,dirname='salomeToElmer'):
 
     edgeIDs = mesh.GetElementsByType(SMESH.EDGE)
     faceIDs = mesh.GetElementsByType(SMESH.FACE)
-    volumeIDs = mesh.GetElementsByType(SMESH.VOLUME)
+    elemIDs = edgeIDs + faceIDs
+    NbBoundaryElems = mesh.NbEdges()
 
-    elemIDs = edgeIDs + faceIDs + volumeIDs
-    NbEdgesFaces = mesh.NbEdges() + mesh.NbFaces()
+    if meshIs3D:
+        volumeIDs = mesh.GetElementsByType(SMESH.VOLUME)
+        elemIDs = elemIDs + volumeIDs
+        NbBoundaryElems = NbBoundaryElems + mesh.NbFaces()
 
     if len(elemGrp) != max(elemIDs):
         raise Exception("ERROR: the number of elements does not match!")
@@ -125,7 +138,14 @@ def exportToElmer(mesh,dirname='salomeToElmer'):
     fileNames.write("! ----- names for bodies -----\n")
     groupID = 1
 
-    for grp in mesh.GetGroups(SMESH.VOLUME):
+    if meshIs3D:
+        bodyType = SMESH.VOLUME
+        boundaryType = SMESH.FACE
+    else:
+        bodyType = SMESH.FACE
+        boundaryType = SMESH.EDGE
+
+    for grp in mesh.GetGroups(bodyType):
         fileNames.write("$ %s = %d\n" %(grp.GetName(), groupID))
         for el in grp.GetIDs():
             elemGrp[invElemIDs[el-1]-1] = groupID
@@ -133,7 +153,7 @@ def exportToElmer(mesh,dirname='salomeToElmer'):
 
     fileNames.write("! ----- names for boundaries -----\n")
 
-    for grp in mesh.GetGroups(SMESH.FACE):
+    for grp in mesh.GetGroups(boundaryType):
         fileNames.write("$ %s = %d\n" %(grp.GetName(), groupID))
         for el in grp.GetIDs():
             if elemGrp[invElemIDs[el-1]-1] > groupID:
@@ -146,10 +166,10 @@ def exportToElmer(mesh,dirname='salomeToElmer'):
     fileNames.close()
 
     # mesh.elements
-    for el in mesh.GetElementsByType(SMESH.VOLUME):
+    for el in mesh.GetElementsByType(bodyType):
         elemType = mesh.GetElementGeomType(el)
         elemTypeNbr = int(invElemType.get(str(elemType)))
-        fileElements.write("%d %d %d" %(invElemIDs[el-1]-NbEdgesFaces, \
+        fileElements.write("%d %d %d" %(invElemIDs[el-1]-NbBoundaryElems, \
                                         elemGrp[invElemIDs[el-1]-1],elemTypeNbr))
         for nid in mesh.GetElemNodes(el):
             fileElements.write(" %d" %(nid))
@@ -159,22 +179,22 @@ def exportToElmer(mesh,dirname='salomeToElmer'):
     fileElements.close()
 
     # mesh.boundary
-    for el in elemIDs[:NbEdgesFaces]:
+    for el in elemIDs[:NbBoundaryElems]:
         elemType = mesh.GetElementGeomType(el)
         elemTypeNbr = int(invElemType.get(str(elemType)))
 
         x,y,z = mesh.BaryCenter( el )
-        parents = mesh.FindElementsByPoint( x,y,z, SMESH.VOLUME )
+        parents = mesh.FindElementsByPoint( x,y,z, bodyType )
 
         if len(parents) is 2:
             fileBoundary.write("%d %d %d %d %d" \
                 %(invElemIDs[el-1],elemGrp[invElemIDs[el-1]-1], \
-                  invElemIDs[parents[0]-1]-NbEdgesFaces, \
-                  invElemIDs[parents[1]-1]-NbEdgesFaces,elemTypeNbr))
+                  invElemIDs[parents[0]-1]-NbBoundaryElems, \
+                  invElemIDs[parents[1]-1]-NbBoundaryElems,elemTypeNbr))
         else:
             fileBoundary.write("%d %d %d 0 %d" \
                 %(invElemIDs[el-1],elemGrp[invElemIDs[el-1]-1], \
-                  invElemIDs[parents[0]-1]-NbEdgesFaces,elemTypeNbr))
+                  invElemIDs[parents[0]-1]-NbBoundaryElems,elemTypeNbr))
 
         for nid in mesh.GetElemNodes(el):
             fileBoundary.write(" %d" %(nid))
