@@ -95,7 +95,7 @@ def exportToElmer(mesh,dirname='salomeToElmer'):
 
     elemTypeNames = {'202': 'Entity_Edge', '303': 'Entity_Triangle', \
                      '404': 'Entity_Quadrangle', '504': 'Entity_Tetra', \
-                     '605': 'Entity_Pyramid', '706': 'Entity_Hexagonal_Prism', \
+                     '605': 'Entity_Pyramid', '706': 'Entity_Penta', \
                      '808': 'Entity_Hexa'}
 
     for nbr, ele in sorted(elemTypeNames.items()):
@@ -186,7 +186,7 @@ def exportToElmer(mesh,dirname='salomeToElmer'):
         x,y,z = mesh.BaryCenter( el )
         parents = mesh.FindElementsByPoint( x,y,z, bodyType )
 
-        if len(parents) is 2:
+        if len(parents) is 2 and elemTypeNbr is not 202:
             fileBoundary.write("%d %d %d %d %d" \
                 %(invElemIDs[el-1],elemGrp[invElemIDs[el-1]-1], \
                   invElemIDs[parents[0]-1]-NbBoundaryElems, \
