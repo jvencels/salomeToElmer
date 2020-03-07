@@ -73,7 +73,7 @@ def exportToElmer(mesh,dirname='salomeToElmer'):
         fileElements = open(dirname + "/mesh.elements",'w')
         fileBoundary = open(dirname + "/mesh.boundary",'w')
     except Exception:
-        print "ERROR: Cannot open files for writting"
+        print("ERROR: Cannot open files for writting")
         return
 
     meshIs3D = False
@@ -82,11 +82,11 @@ def exportToElmer(mesh,dirname='salomeToElmer'):
 
     # mesh.header
     if meshIs3D:
-        print "Exporting 3D mesh..\n"
+        print("Exporting 3D mesh..\n")
         fileHeader.write("%d %d %d\n" \
             %(mesh.NbNodes(),mesh.NbVolumes(),mesh.NbEdges()+mesh.NbFaces()))
     else:
-        print "Exporting 2D mesh..\n"
+        print("Exporting 2D mesh..\n")
         fileHeader.write("%d %d %d\n" \
             %(mesh.NbNodes(),mesh.NbFaces(),mesh.NbEdges()))
 
@@ -203,13 +203,13 @@ def exportToElmer(mesh,dirname='salomeToElmer'):
     fileBoundary.flush()
     fileBoundary.close()
 
-    print "Done exporting!\n"
-    print "Total time: %0.f s\n" %(time.time()-tstart)
+    print("Done exporting!\n")
+    print("Total time: %0.f s\n" %(time.time()-tstart))
 
 
 def findSelectedMeshes():
     meshes=list()
-    smesh = smeshBuilder.New(salome.myStudy)
+    smesh = smeshBuilder.New()
     nrSelected=salome.sg.SelectedCount() # total number of selected items
     
     foundMesh=False
@@ -225,7 +225,7 @@ def findSelectedMeshes():
             meshes.append(mesh)
 
     if not foundMesh:
-        print "ERROR: Mesh is not selected"
+        print("ERROR: Mesh is not selected")
         return list()
     else:
         return meshes
@@ -240,7 +240,7 @@ def main():
         if not mesh == None:
             mName=mesh.GetName()
             outdir=os.getcwd()+"/"+mName
-            print "Exporting mesh to " + outdir + "\n"           
+            print("Exporting mesh to " + outdir + "\n")
             exportToElmer(mesh,outdir)
             
     
